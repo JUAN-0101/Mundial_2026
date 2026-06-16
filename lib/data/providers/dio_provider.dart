@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(
-    baseUrl: 'http://10.0.2.2:3000/api', // Para emulador Android
-    // baseUrl: 'http://localhost:3000/api', // Para iOS
+    //baseUrl: 'http://10.0.2.2:3000/api', // Para emulador Android
+    baseUrl: 'http://localhost:3000/api', // Para iOS
     // baseUrl: 'http://192.168.1.X:3000/api', // Para dispositivo físico
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
@@ -24,7 +24,7 @@ final dioProvider = Provider<Dio>((ref) {
       return handler.next(response);
     },
     onError: (error, handler) {
-      print('ERROR: ${error.message}');
+      print(' ERROR: ${error.message}');
       return handler.next(error);
     },
   ));
