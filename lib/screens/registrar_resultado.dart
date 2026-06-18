@@ -26,142 +26,121 @@ class RegistrarResultado extends ConsumerStatefulWidget {
 }
 
 class _RegistrarResultadoState extends ConsumerState<RegistrarResultado> {
-  final TextEditingController _goles1Controller = TextEditingController();
-  final TextEditingController _goles2Controller = TextEditingController();
+  late int _golesLocal;
+  late int _golesVisitante;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _goles1Controller.text = widget.marcadorActual1.toString();
-    _goles2Controller.text = widget.marcadorActual2.toString();
-  }
-
-  @override
-  void dispose() {
-    _goles1Controller.dispose();
-    _goles2Controller.dispose();
-    super.dispose();
+    _golesLocal = widget.marcadorActual1;
+    _golesVisitante = widget.marcadorActual2;
   }
 
   Future<void> _guardar() async {
-    final goles1 = int.tryParse(_goles1Controller.text) ?? 0;
-    final goles2 = int.tryParse(_goles2Controller.text) ?? 0;
-
-    if (goles1 < 0 || goles2 < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Los goles no pueden ser negativos')),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     final form = FormResultadoModel(
       partidoId: widget.partidoId,
-      marcadorEquipo1: goles1,
-      marcadorEquipo2: goles2,
+      marcadorEquipo1: _golesLocal,
+      marcadorEquipo2: _golesVisitante,
     );
 
     bool success;
     if (widget.idResultado != null) {
-      success = await ref.read(resultadosProvider.notifier).actualizarResultado(
-            widget.idResultado!,
-            form,
-          );
+      success = await ref.read(resultadosProvider.notifier).actualizarResultado(widget.idResultado!, form);
     } else {
-      success =
-          await ref.read(resultadosProvider.notifier).registrarResultado(form);
+      success = await ref.read(resultadosProvider.notifier).registrarResultado(form);
     }
 
     setState(() => _isLoading = false);
 
-    if (success) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Resultado guardado')),
-        );
-        Navigator.pop(context, true);
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Error al guardar')),
-        );
-      }
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Resultado guardado con éxito'), backgroundColor: Colors.green),
+      );
+      Navigator.pop(context, true);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Error al guardar el resultado'), backgroundColor: Colors.red),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('⚽ Registrar Resultado'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('⚽ Registrar Marcador')),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Text(
-                      '${widget.equipoLocal} vs ${widget.equipoVisitante}',
-                      style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    const Icon(Icons.sports_soccer,
-                        size: 48, color: Colors.green),
-                  ],
-                ),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, 5))],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildMarcadorControl(widget.equipoLocal, _golesLocal, (val) => setState(() => _golesLocal = val)),
+                      const Text('VS', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.grey)),
+                      _buildMarcadorControl(widget.equipoVisitante, _golesVisitante, (val) => setState(() => _golesVisitante = val)),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 30),
-            TextField(
-              controller: _goles1Controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: '⚽ Goles ${widget.equipoLocal}',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.flag),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: FilledButton(
+                onPressed: _isLoading ? null : _guardar,
+                style: FilledButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                    : const Text('Guardar Resultado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: _goles2Controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: '⚽ Goles ${widget.equipoVisitante}',
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.flag),
-              ),
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _guardar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Guardar Resultado',
-                        style: TextStyle(fontSize: 18)),
-              ),
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMarcadorControl(String equipo, int goles, Function(int) onChanged) {
+    return Column(
+      children: [
+        Text(equipo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.add, color: Colors.green),
+                onPressed: () => onChanged(goles + 1),
+              ),
+              Text('$goles', style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.remove, color: Colors.red),
+                onPressed: () => onChanged(goles > 0 ? goles - 1 : 0),
+              ),
+            ],
+          ),
+        )
+      ],
     );
   }
 }
